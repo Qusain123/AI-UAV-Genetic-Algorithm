@@ -1,0 +1,138 @@
+
+import random
+import matplotlib.pyplot as plt
+
+random.seed(7)
+
+STARTS = [(1, 1), (1, 18), (18, 1)]
+GOALS = [(18, 18), (18, 1), (1, 1)]
+TARGETS = [(5, 15), (10, 10), (15, 15), (15, 5), (7, 7)]
+HAZARDS = {(x, y) for x in range(3, 7) for y in range(3, 7)}
+NO_FLY = {(8, y) for y in range(5, 14)}
+
+
+def create_chromosome():
+    return [[(random.randint(1, 18), random.randint(1, 18))
+             for _ in range(2)] for _ in range(3)]
+
+
+def make_path(start, waypoints, goal):
+    path = [start]
+
+    for tx, ty in waypoints + [goal]:
+        x, y = path[-1]
+
+        while x != tx:
+            x += 1 if tx > x else -1
+            path.append((x, y))
+
+        while y != ty:
+            y += 1 if ty > y else -1
+            path.append((x, y))
+
+    return path
+
+
+class GeneticAlgorithm:
+    def __init__(self, population=30, generations=40, mutation=0.15):
+        self.population = population
+        self.generations = generations
+        self.mutation = mutation
+
+    def paths(self, chromosome):
+        return [make_path(STARTS[i], chromosome[i], GOALS[i])
+                for i in range(3)]
+
+    def fitness(self, chromosome):
+        paths = self.paths(chromosome)
+        cells = {point for path in paths for point in path}
+
+        coverage = len(cells & set(TARGETS))
+        distance = sum(len(path) - 1 for path in paths)
+        risk = sum(point in HAZARDS for path in paths for point in path)
+        violations = sum(point in NO_FLY for path in paths
+                         for point in path)
+
+        return (3 * coverage - 0.05 * distance
+                - 0.5 * risk - 5 * violations)
+
+    def run(self):
+        population = [create_chromosome()
+                      for _ in range(self.population)]
+        best_scores, average_scores = [], []
+
+        for _ in range(self.generations):
+            population.sort(key=self.fitness, reverse=True)
+            scores = [self.fitness(c) for c in population]
+
+            best_scores.append(scores[0])
+            average_scores.append(sum(scores) / len(scores))
+
+            new_population = [population[0]]
+
+            while len(new_population) < self.population:
+                p1 = max(random.sample(population, 3),
+                         key=self.fitness)
+                p2 = max(random.sample(population, 3),
+                         key=self.fitness)
+
+                cut = random.randint(1, 2)
+                child = [p1[i][:] if i < cut else p2[i][:]
+                         for i in range(3)]
+
+                for route in child:
+                    for j, (x, y) in enumerate(route):
+                        if random.random() < self.mutation:
+                            route[j] = (
+                                max(1, min(18, x + random.randint(-3, 3))),
+                                max(1, min(18, y + random.randint(-3, 3)))
+                            )
+
+                new_population.append(child)
+
+            population = new_population
+
+        best = max(population, key=self.fitness)
+        return best, best_scores, average_scores
+
+
+ga = GeneticAlgorithm()
+best, best_scores, average_scores = ga.run()
+paths = ga.paths(best)
+
+print("Best Fitness:", round(ga.fitness(best), 2))
+print("Targets Covered:", len(
+    {p for path in paths for p in path} & set(TARGETS)))
+print("No-Fly Violations:", sum(
+    p in NO_FLY for path in paths for p in path))
+
+plt.plot(best_scores, label="Best Fitness")
+plt.plot(average_scores, label="Average Fitness")
+plt.xlabel("Generation")
+plt.ylabel("Fitness")
+plt.title("GA Fitness Convergence")
+plt.legend()
+plt.grid()
+plt.show()
+
+for i, path in enumerate(paths):
+    plt.plot([p[0] for p in path], [p[1] for p in path],
+             label=f"UAV {i + 1}")
+
+for x, y in TARGETS:
+    plt.scatter(x, y, marker="*", color="gold", s=120)
+
+for x, y in HAZARDS:
+    plt.scatter(x, y, color="red", s=15)
+
+for x, y in NO_FLY:
+    plt.scatter(x, y, color="black", s=15)
+
+plt.xlim(0, 19)
+plt.ylim(0, 19)
+plt.xlabel("X Coordinate")
+plt.ylabel("Y Coordinate")
+plt.title("UAV Flight Paths")
+plt.legend()
+plt.grid()
+plt.show()

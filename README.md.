@@ -1,0 +1,35 @@
+# UAV Fleet Path Planning Using Genetic Algorithm
+
+## Project Description
+This project uses a Genetic Algorithm (GA) to find improved flight paths for a fleet of three UAVs. The simulation considers target coverage, flight distance, hazard exposure, and no-fly zones.
+
+## Technologies
+- Python
+- Genetic Algorithm
+- Matplotlib
+
+## Features
+- Random population initialization
+- Fitness function for route evaluation
+- Tournament selection
+- Crossover and mutation
+- Fitness convergence graph
+- UAV route visualization
+- Comparison with random search
+
+## Installation
+Install the required library:
+
+```bash
+pip install -r requirements.txt
+```
+
+## How to Run
+Run the program using:
+
+```bash
+python main.py
+```
+
+## Author
+BSCS 5th Semester Student
